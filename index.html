@@ -1,0 +1,2063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>University Hourly Rate Calculator</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Handsontable -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom Styles -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9; /* slate-100 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; /* slate-300 */
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; /* slate-400 */
+        }
+        /* Style for the accordion button arrow */
+        .accordion-button::after {
+            content: '\25B2'; /* Up arrow */
+            transition: transform 0.2s ease-in-out;
+            margin-left: auto;
+        }
+        .accordion-button.collapsed::after {
+            transform: rotate(180deg); /* Down arrow */
+        }
+        /* Ensure consistent height for cards */
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+        /* Custom checkbox style */
+        .month-checkbox-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border: 1px solid #e2e8f0; /* slate-200 */
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #475569; /* slate-600 */
+        }
+        .month-checkbox:checked + .month-checkbox-label {
+            background-color: #0284c7; /* sky-600 */
+            border-color: #0284c7; /* sky-600 */
+            color: white;
+        }
+        .person-card.opacity-50 {
+            opacity: 0.5;
+        }
+        .drag-over {
+            background-color: #e0f2fe !important; /* sky-100 */
+            border: 2px dashed #0284c7 !important; /* sky-600 */
+        }
+        .toggle-collapse-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border: 1px solid #e2e8f0; /* slate-200 */
+            border-radius: 9999px;
+            padding: 2px 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #475569; /* slate-600 */
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .toggle-collapse-btn:hover {
+            background-color: #f1f5f9; /* slate-100 */
+            color: #0284c7; /* sky-600 */
+        }
+        .team-container.collapsed {
+            display: none;
+        }
+    </style>
+</head>
+<body class="antialiased text-slate-700">
+
+    <!-- Main Container -->
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+
+        <!-- Header -->
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-slate-800">Hourly Rate Calculator</h1>
+            <p class="text-slate-500 mt-1">A tool for determining the hourly rate for a university software development team.</p>
+        </header>
+
+        <!-- Summary Section -->
+        <section id="summary-section" class="mb-8 bg-white p-6 rounded-xl shadow-md border border-slate-200">
+            <h2 class="text-lg font-semibold text-slate-800 mb-4">Calculated Rate Summary</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Calculated Rate -->
+                <div class="flex flex-col items-center justify-center p-6 bg-sky-600 text-white rounded-lg">
+                    <span class="text-sm font-medium uppercase tracking-wider opacity-80">Cost Recovery Rate</span>
+                    <span id="calculated-rate" class="text-5xl font-bold mt-2">$0.00</span>
+                </div>
+                 <!-- Projected Balance -->
+                <div id="projected-balance-card" class="flex flex-col items-center justify-center p-6 bg-slate-50 border border-slate-200 rounded-lg">
+                    <span id="projected-balance-label" class="text-sm font-medium uppercase tracking-wider text-slate-500">Projected Balance</span>
+                    <span id="projected-balance" class="text-3xl font-bold mt-2">$0.00</span>
+                    <span id="projected-balance-percentage" class="text-sm font-medium mt-1"></span>
+                </div>
+                <!-- Total Costs -->
+                <div class="flex flex-col items-center justify-center p-6 bg-slate-50 border border-slate-200 rounded-lg">
+                    <span class="text-sm font-medium uppercase tracking-wider text-slate-500">Total Annual Cost</span>
+                    <span id="total-costs" class="text-3xl font-bold text-slate-800 mt-2">$0.00</span>
+                </div>
+                <!-- Total Hours -->
+                <div class="flex flex-col items-center justify-center p-6 bg-slate-50 border border-slate-200 rounded-lg">
+                    <span class="text-sm font-medium uppercase tracking-wider text-slate-500">Total Billable Hours</span>
+                    <span id="total-hours" class="text-3xl font-bold text-slate-800 mt-2">0</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings Section -->
+        <section id="settings-section" class="mb-8">
+            <div class="bg-white rounded-xl shadow-md border border-slate-200">
+                <button id="settings-accordion-button" class="accordion-button w-full flex items-center p-6 text-left text-xl font-semibold text-slate-800">
+                    Settings
+                </button>
+                <div id="settings-content" class="px-6 pb-6">
+                     <p class="text-slate-500 mb-6 -mt-2">Configure the global defaults for rate calculation. These can be overridden at the role level.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label for="base-billable-hours" class="block text-sm font-medium text-slate-700 mb-1">Baseline Billable Hours/Year</label>
+                            <input type="number" id="base-billable-hours" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500">
+                            <p class="text-xs text-slate-500 mt-1">Standard number of work hours in a year (e.g., 2080).</p>
+                        </div>
+                        <div>
+                            <label for="default-benefits-percentage" class="block text-sm font-medium text-slate-700 mb-1">Default Benefits Percentage (%)</label>
+                            <input type="number" id="default-benefits-percentage" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500">
+                            <p class="text-xs text-slate-500 mt-1">Default percentage of salary added for benefits.</p>
+                        </div>
+                        <div>
+                            <label for="official-fy-rate" class="block text-sm font-medium text-slate-700 mb-1">Official FY Hourly Rate ($)</label>
+                            <input type="number" id="official-fy-rate" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500" placeholder="e.g., 150">
+                            <p class="text-xs text-slate-500 mt-1">The official billing rate for projections.</p>
+                        </div>
+                    </div>
+                     <!-- Salary Toggle -->
+                    <div class="mt-6">
+                        <div class="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-200">
+                            <div>
+                                <h4 class="text-sm font-medium text-slate-800">Salary Visibility</h4>
+                                <p class="text-xs text-slate-500">Show or hide salary information across the app.</p>
+                            </div>
+                            <button id="toggle-salary-btn" type="button" class="bg-gray-200 relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500" role="switch" aria-checked="false">
+                                <span class="sr-only">Toggle Salary Visibility</span>
+                                <span id="toggle-salary-handle" class="translate-x-0 pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg transform ring-0 transition ease-in-out duration-200"></span>
+                            </button>
+                        </div>
+                    </div>
+                     <!-- Workbook Mode Toggle -->
+                    <div class="mt-6">
+                        <div class="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-200">
+                            <div>
+                                <h4 class="text-sm font-medium text-slate-800">Workbook Mode</h4>
+                                <p class="text-xs text-slate-500">Edit data in a spreadsheet-like grid.</p>
+                            </div>
+                            <button id="toggle-workbook-btn" type="button" class="bg-gray-200 relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500" role="switch" aria-checked="false">
+                                <span class="sr-only">Toggle Workbook Mode</span>
+                                <span id="toggle-workbook-handle" class="translate-x-0 pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg transform ring-0 transition ease-in-out duration-200"></span>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Data Management Section -->
+                    <div class="mt-6 pt-6 border-t border-slate-200">
+                        <h3 class="text-md font-semibold text-slate-800 mb-2">Data Management</h3>
+                        <p class="text-xs text-slate-500 mb-4">Save your current configuration to a file or load a configuration from a backup.</p>
+                        <div class="flex flex-wrap gap-4">
+                            <button id="undo-btn" class="bg-gray-500 text-white font-semibold px-4 py-2 rounded-lg shadow-sm hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Undo</button>
+                            <button id="redo-btn" class="bg-gray-500 text-white font-semibold px-4 py-2 rounded-lg shadow-sm hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Redo</button>
+                            <button id="export-btn" class="bg-green-600 text-white font-semibold px-4 py-2 rounded-lg shadow-sm hover:bg-green-700 transition-colors">Export to JSON</button>
+                            <button id="import-btn" class="bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg shadow-sm hover:bg-blue-700 transition-colors">Import from JSON</button>
+                            <input type="file" id="import-file-input" class="hidden" accept=".json,application/json">
+                        </div>
+                    </div>
+                     <!-- Change History Section -->
+                    <div class="mt-6 pt-6 border-t border-slate-200">
+                        <button id="history-accordion-button" class="accordion-button collapsed w-full flex items-center text-left text-md font-semibold text-slate-800">
+                            Change History
+                        </button>
+                        <div id="history-content" class="hidden mt-2 max-h-48 overflow-y-auto bg-slate-50 p-3 rounded-lg border border-slate-200">
+                            <ul id="change-log-list" class="text-sm text-slate-600 space-y-2">
+                                <!-- History items will be injected here -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Monthly Cost Recovery Section -->
+        <section id="monthly-recovery-section" class="mb-8">
+            <div class="bg-white rounded-xl shadow-md border border-slate-200">
+                <button id="monthly-recovery-accordion-button" class="accordion-button collapsed w-full flex items-center p-6 text-left text-xl font-semibold text-slate-800">
+                    Monthly Cost Recovery
+                </button>
+                <div id="monthly-recovery-content" class="hidden px-6 pb-6">
+                     <p class="text-slate-500 mb-6 -mt-2">Enter actual cost recovery for past months. Projections will be used for any month left blank.</p>
+                    <div id="monthly-recovery-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-4">
+                        <!-- Monthly inputs will be injected here by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Annual Fixed Costs Section -->
+        <section id="fixed-costs-section" class="mb-8">
+            <div id="fixed-costs-header" class="flex items-center p-4 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer accordion-button">
+                <h2 class="text-2xl font-bold text-slate-800">Annual Fixed Costs</h2>
+            </div>
+            <div id="fixed-costs-content" class="pt-4">
+                <div id="fixed-costs-container" class="card-container">
+                    <!-- Fixed Cost cards will be injected here by JavaScript -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Roles Section -->
+        <section id="roles-section" class="mb-8">
+            <div id="roles-header" class="flex items-center p-4 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer accordion-button">
+                <h2 class="text-2xl font-bold text-slate-800">Roles</h2>
+            </div>
+            <div id="roles-content" class="pt-4">
+                <div id="roles-container" class="card-container">
+                    <!-- Role cards will be injected here by JavaScript -->
+                </div>
+            </div>
+        </section>
+
+        <!-- People Section -->
+        <section id="people-section">
+            <div id="people-header" class="flex items-center p-4 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer accordion-button">
+                <h2 class="text-2xl font-bold text-slate-800">Personnel</h2>
+            </div>
+            <div id="people-content" class="pt-4">
+                <div id="people-container">
+                    <!-- Person cards will be injected here by JavaScript -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Workbook Section -->
+        <section id="workbook-section" class="hidden mb-8">
+            <div class="bg-white rounded-xl shadow-md border border-slate-200 p-6">
+                <div class="space-y-8">
+                    <div>
+                        <h3 class="text-xl font-semibold text-slate-800 mb-4">Monthly Cost Recovery</h3>
+                        <div id="hot-monthly-recovery" class="h-96 overflow-auto"></div>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-slate-800 mb-4">Roles</h3>
+                        <div id="hot-roles" class="h-64 overflow-auto"></div>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-slate-800 mb-4">Personnel</h3>
+                        <div id="hot-people" class="h-96 overflow-auto"></div>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-slate-800 mb-4">Annual Fixed Costs</h3>
+                        <div id="hot-fixed-costs" class="h-64 overflow-auto"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div> <!-- End Main Container -->
+
+
+    <!-- Modal for Add/Edit Role/Person -->
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+        <div id="modal-content" class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-5 border-b border-slate-200">
+                <h3 id="modal-title" class="text-xl font-semibold text-slate-800">Modal Title</h3>
+                <button id="modal-close-btn" class="text-slate-400 hover:text-slate-600 text-3xl leading-none">&times;</button>
+            </div>
+            <div id="modal-body" class="p-6 overflow-y-auto">
+                <!-- Form content will be injected here by JavaScript -->
+            </div>
+            <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3 mt-auto">
+                 <button id="modal-cancel-btn" class="bg-white text-slate-700 border border-slate-300 font-semibold px-4 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition-colors">Cancel</button>
+                 <button id="modal-save-btn" class="bg-sky-600 text-white font-semibold px-4 py-2 rounded-lg shadow-sm hover:bg-sky-700 transition-colors">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Delete Confirmation Modal -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm">
+             <div class="p-6">
+                <h3 id="confirm-modal-title" class="text-lg font-semibold text-slate-800">Confirm Deletion</h3>
+                <p id="confirm-modal-body" class="mt-2 text-sm text-slate-600">Are you sure you want to delete this item?</p>
+            </div>
+            <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+                 <button id="confirm-cancel-btn" class="bg-white text-slate-700 border border-slate-300 font-semibold px-4 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition-colors">Cancel</button>
+                 <button id="confirm-delete-btn" class="bg-red-600 text-white font-semibold px-4 py-2 rounded-lg shadow-sm hover:bg-red-700 transition-colors">Delete</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- STATE MANAGEMENT ---
+        let state = {
+            settings: {
+                baseBillableHours: 2080,
+                defaultBenefitsPercentage: 35,
+                showSalaries: true,
+                officialFYRate: 0,
+                workbookMode: false,
+            },
+            roles: [],
+            people: [],
+            fixedCosts: [],
+            monthlyRecovery: Array(12).fill(null),
+        };
+        let undoStack = [];
+        let redoStack = [];
+        let hotRoles, hotPeople, hotFixedCosts, hotMonthlyRecovery;
+
+        const LOCAL_STORAGE_KEY = 'universityRateCalculatorState';
+
+        /**
+         * Loads state from localStorage.
+         */
+        function loadState() {
+            const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (savedData) {
+                const parsedData = JSON.parse(savedData);
+                // New format with history stacks
+                if (parsedData.appData && parsedData.undoStack) {
+                    const loadedState = parsedData.appData;
+                    state.settings = { ...state.settings, ...loadedState.settings };
+                    state.roles = loadedState.roles || [];
+                    state.people = (loadedState.people || []).map(p => ({ ...p, isCollapsed: p.isCollapsed === true }));
+                    state.fixedCosts = loadedState.fixedCosts || [];
+                    state.monthlyRecovery = loadedState.monthlyRecovery || Array(12).fill(null);
+                    undoStack = parsedData.undoStack || [];
+                    redoStack = parsedData.redoStack || [];
+                } else { // Old format, migrate or initialize
+                    const loadedState = parsedData.appData || parsedData;
+                    state.settings = { ...state.settings, ...loadedState.settings };
+                    state.roles = loadedState.roles || [];
+                    state.people = (loadedState.people || []).map(p => ({ ...p, isCollapsed: p.isCollapsed === true }));
+                    state.fixedCosts = loadedState.fixedCosts || [];
+                    state.monthlyRecovery = loadedState.monthlyRecovery || Array(12).fill(null);
+                    undoStack = [];
+                    redoStack = [];
+                }
+            }
+        }
+
+        /**
+         * Saves the current state to localStorage.
+         */
+        function saveState() {
+            const dataToSave = { appData: state, undoStack, redoStack };
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToSave));
+        }
+
+        /**
+         * Saves a snapshot of the current state to the undo stack.
+         * @param {string} description - A description of the change.
+         */
+        function pushToUndoStack(description) {
+            const stateSnapshot = JSON.parse(JSON.stringify(state));
+            undoStack.push({ state: stateSnapshot, description });
+            
+            // A new action clears the redo stack.
+            redoStack = [];
+
+            // Limit the history to a reasonable size
+            if (undoStack.length > 50) {
+                undoStack.shift(); // Remove the oldest state
+            }
+        }
+
+        /**
+         * Reverts the application state to the most recent snapshot in the undo stack.
+         */
+        function undo() {
+            if (undoStack.length > 0) {
+                // Push current state to redo stack before undoing
+                const currentSnapshot = JSON.parse(JSON.stringify(state));
+                const lastAction = undoStack[undoStack.length - 1];
+                redoStack.push({ state: currentSnapshot, description: lastAction.description });
+
+                const lastState = undoStack.pop().state;
+                state = lastState;
+                saveState();
+                render();
+            } else {
+                alert("No more changes to undo.");
+            }
+        }
+        
+        /**
+         * Re-applies a change from the redo stack.
+         */
+        function redo() {
+            if (redoStack.length > 0) {
+                // Push current state back to undo stack before redoing
+                 const currentSnapshot = JSON.parse(JSON.stringify(state));
+                 const nextAction = redoStack[redoStack.length - 1];
+                 undoStack.push({ state: currentSnapshot, description: nextAction.description });
+
+                const nextState = redoStack.pop().state;
+                state = nextState;
+                saveState();
+                render();
+            } else {
+                alert("No more changes to redo.");
+            }
+        }
+
+        // --- UTILITY FUNCTIONS ---
+
+        /**
+         * Generates a simple unique ID.
+         * @returns {string} A unique ID string.
+         */
+        const uniqueId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        /**
+         * Formats a number as a currency string.
+         * @param {number} value - The number to format.
+         * @returns {string} Formatted currency string.
+         */
+        const formatCurrency = (value) => {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            }).format(value);
+        };
+        
+        /**
+         * Formats a number with commas.
+         * @param {number} value - The number to format.
+         * @returns {string} Formatted number string.
+         */
+        const formatNumber = (value) => {
+            return new Intl.NumberFormat('en-US').format(value);
+        };
+
+        // --- CALCULATION LOGIC ---
+
+        /**
+         * Calculates the projected revenue for a single month based on active personnel.
+         * @param {number} monthIndex - The index of the month (0-11).
+         * @returns {number} The calculated projected revenue for that month.
+         */
+        function getMonthlyProjectedRevenue(monthIndex) {
+            const officialRate = state.settings.officialFYRate || 0;
+            if (officialRate === 0) return 0; // No revenue if no rate is set.
+
+            let monthlyProjectedHours = 0;
+            state.people.forEach(person => {
+                if (person.months[monthIndex]) { // If the person is active this month
+                     const role = state.roles.find(r => r.id === person.roleId);
+                     if (!role) return;
+
+                     const nonBillableHours = role.nonBillable.reduce((acc, activity) => acc + (activity.hours || 0), 0);
+                     const roleYearlyBillableHours = state.settings.baseBillableHours - nonBillableHours;
+                     monthlyProjectedHours += roleYearlyBillableHours / 12;
+                }
+            });
+            return monthlyProjectedHours * officialRate;
+        }
+
+
+        /**
+         * Calculates and updates the summary metrics.
+         */
+        function calculateAndRenderSummary() {
+            let totalCost = 0;
+            let totalHours = 0;
+            let projectedRevenue = 0;
+            const officialRate = state.settings.officialFYRate || 0;
+
+            // Calculate total annual personnel costs and total potential annual hours
+            state.people.forEach(person => {
+                const role = state.roles.find(r => r.id === person.roleId);
+                if (!role) return;
+
+                const monthsWorked = person.months.filter(Boolean).length;
+                if (monthsWorked === 0) return;
+
+                const yearlySalary = person.salary || 0;
+                const percentFromFund = person.fundPercentage || 0;
+                const proratedSalary = yearlySalary * (monthsWorked / 12);
+                const salaryCost = proratedSalary * (percentFromFund / 100);
+                
+                const benefitsPercentage = (role.benefitsOverride !== null && role.benefitsOverride !== '') ?
+                    role.benefitsOverride :
+                    state.settings.defaultBenefitsPercentage;
+                
+                const benefitsCost = salaryCost * (benefitsPercentage / 100);
+                totalCost += salaryCost + benefitsCost;
+
+                const nonBillableHours = role.nonBillable.reduce((acc, activity) => acc + (activity.hours || 0), 0);
+                const roleYearlyBillableHours = state.settings.baseBillableHours - nonBillableHours;
+                const personProratedBillableHours = roleYearlyBillableHours * (monthsWorked / 12);
+                totalHours += personProratedBillableHours;
+            });
+
+            // Calculate projected revenue month-by-month, using actuals if available
+            for (let i = 0; i < 12; i++) {
+                if (state.monthlyRecovery[i] !== null && state.monthlyRecovery[i] !== undefined) {
+                    projectedRevenue += state.monthlyRecovery[i];
+                } else {
+                    projectedRevenue += getMonthlyProjectedRevenue(i);
+                }
+            }
+            
+            // Add fixed costs to total cost
+            const totalFixedCosts = state.fixedCosts.reduce((acc, cost) => acc + (cost.amount || 0), 0);
+            totalCost += totalFixedCosts;
+            
+            // This is now a "Cost Recovery Rate" based on total costs vs total hours, not used for projection if an official rate is set.
+            const costRecoveryRate = totalHours > 0 ? totalCost / totalHours : 0;
+
+            // Render summary values
+            document.getElementById('calculated-rate').textContent = formatCurrency(costRecoveryRate);
+            document.getElementById('total-costs').textContent = formatCurrency(totalCost);
+            document.getElementById('total-hours').textContent = formatNumber(Math.round(totalHours));
+
+            // Calculate and Render Projected Balance
+            const projectedBalance = projectedRevenue - totalCost;
+
+            const balanceEl = document.getElementById('projected-balance');
+            const balanceCardEl = document.getElementById('projected-balance-card');
+            const balanceLabelEl = document.getElementById('projected-balance-label');
+            const balancePercentageEl = document.getElementById('projected-balance-percentage');
+            
+            balanceEl.textContent = formatCurrency(projectedBalance);
+
+            // Clear previous color classes
+            balanceCardEl.classList.remove('bg-green-100', 'border-green-300', 'bg-red-100', 'border-red-300', 'bg-slate-50', 'border-slate-200');
+            balanceEl.classList.remove('text-green-700', 'text-red-700', 'text-slate-800');
+            balanceLabelEl.classList.remove('text-green-600', 'text-red-600', 'text-slate-500');
+            balancePercentageEl.classList.remove('text-green-600', 'text-red-600', 'text-slate-500');
+            
+            let percentageText = '(0.00%)';
+            if (totalCost > 0) {
+                const percentageDifference = (projectedBalance / totalCost) * 100;
+                percentageText = `(${percentageDifference > 0 ? '+' : ''}${percentageDifference.toFixed(2)}%)`;
+            } else if (projectedRevenue > 0) {
+                percentageText = '(100% Surplus)';
+            }
+
+
+            if (projectedBalance > 0) {
+                balanceCardEl.classList.add('bg-green-100', 'border-green-300');
+                balanceEl.classList.add('text-green-700');
+                balanceLabelEl.classList.add('text-green-600');
+                balancePercentageEl.classList.add('text-green-600');
+                balanceLabelEl.textContent = 'Projected Surplus';
+            } else if (projectedBalance < 0) {
+                balanceCardEl.classList.add('bg-red-100', 'border-red-300');
+                balanceEl.classList.add('text-red-700');
+                balanceLabelEl.classList.add('text-red-600');
+                balancePercentageEl.classList.add('text-red-600');
+                balanceLabelEl.textContent = 'Projected Deficit';
+            } else {
+                 balanceCardEl.classList.add('bg-slate-50', 'border-slate-200');
+                 balanceEl.classList.add('text-slate-800');
+                 balanceLabelEl.classList.add('text-slate-500');
+                 balancePercentageEl.classList.add('text-slate-500');
+                 balanceLabelEl.textContent = 'Projected Balance';
+            }
+            balancePercentageEl.textContent = percentageText;
+        }
+
+
+        // --- UI RENDERING ---
+
+        /**
+         * Main render function to update the entire UI.
+         */
+        function render() {
+            renderSettings();
+
+            if (state.settings.workbookMode) {
+                document.getElementById('monthly-recovery-section').classList.add('hidden');
+                document.getElementById('fixed-costs-section').classList.add('hidden');
+                document.getElementById('roles-section').classList.add('hidden');
+                document.getElementById('people-section').classList.add('hidden');
+                document.getElementById('workbook-section').classList.remove('hidden');
+                initializeHandsontables();
+            } else {
+                document.getElementById('monthly-recovery-section').classList.remove('hidden');
+                document.getElementById('fixed-costs-section').classList.remove('hidden');
+                document.getElementById('roles-section').classList.remove('hidden');
+                document.getElementById('people-section').classList.remove('hidden');
+                document.getElementById('workbook-section').classList.add('hidden');
+                renderMonthlyRecovery();
+                renderFixedCosts();
+                renderRoles();
+                renderPeople();
+            }
+
+            calculateAndRenderSummary();
+            updateUndoRedoButtons();
+            renderChangeLog();
+            console.log('State updated and rendered:', state);
+        }
+
+        /**
+         * Renders the settings section.
+         */
+        function renderSettings() {
+            document.getElementById('base-billable-hours').value = state.settings.baseBillableHours;
+            document.getElementById('default-benefits-percentage').value = state.settings.defaultBenefitsPercentage;
+            document.getElementById('official-fy-rate').value = state.settings.officialFYRate || '';
+
+            const salaryToggleBtn = document.getElementById('toggle-salary-btn');
+            const salaryToggleHandle = document.getElementById('toggle-salary-handle');
+            if (state.settings.showSalaries) {
+                salaryToggleBtn.classList.remove('bg-gray-200');
+                salaryToggleBtn.classList.add('bg-sky-600');
+                salaryToggleBtn.setAttribute('aria-checked', 'true');
+                salaryToggleHandle.classList.add('translate-x-5');
+                salaryToggleHandle.classList.remove('translate-x-0');
+            } else {
+                salaryToggleBtn.classList.add('bg-gray-200');
+                salaryToggleBtn.classList.remove('bg-sky-600');
+                salaryToggleBtn.setAttribute('aria-checked', 'false');
+                salaryToggleHandle.classList.remove('translate-x-5');
+                salaryToggleHandle.classList.add('translate-x-0');
+            }
+
+            const workbookToggleBtn = document.getElementById('toggle-workbook-btn');
+            const workbookToggleHandle = document.getElementById('toggle-workbook-handle');
+            if (state.settings.workbookMode) {
+                workbookToggleBtn.classList.remove('bg-gray-200');
+                workbookToggleBtn.classList.add('bg-sky-600');
+                workbookToggleBtn.setAttribute('aria-checked', 'true');
+                workbookToggleHandle.classList.add('translate-x-5');
+                workbookToggleHandle.classList.remove('translate-x-0');
+            } else {
+                workbookToggleBtn.classList.add('bg-gray-200');
+                workbookToggleBtn.classList.remove('bg-sky-600');
+                workbookToggleBtn.setAttribute('aria-checked', 'false');
+                workbookToggleHandle.classList.remove('translate-x-5');
+                workbookToggleHandle.classList.add('translate-x-0');
+            }
+        }
+
+        /**
+         * Renders the monthly cost recovery input fields.
+         */
+        function renderMonthlyRecovery() {
+            const container = document.getElementById('monthly-recovery-container');
+            container.innerHTML = '';
+            const monthNames = ['July', 'August', 'September', 'October', 'November', 'December', 'January', 'February', 'March', 'April', 'May', 'June'];
+
+            monthNames.forEach((month, index) => {
+                const div = document.createElement('div');
+                const value = state.monthlyRecovery[index];
+                const projectedValue = getMonthlyProjectedRevenue(index);
+                const placeholderText = `Projected: ${formatCurrency(projectedValue)}`;
+
+                div.innerHTML = `
+                    <label for="month-recovery-${index}" class="block text-sm font-medium text-slate-700 mb-1">${month}</label>
+                    <input type="number" id="month-recovery-${index}" data-index="${index}" 
+                           value="${value !== null ? value : ''}" 
+                           placeholder="${placeholderText}"
+                           class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 monthly-recovery-input">
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        /**
+         * Updates the disabled state of the Undo button.
+         */
+        function updateUndoRedoButtons() {
+            const undoBtn = document.getElementById('undo-btn');
+            const redoBtn = document.getElementById('redo-btn');
+            undoBtn.disabled = undoStack.length === 0;
+            redoBtn.disabled = redoStack.length === 0;
+        }
+
+        /**
+         * Renders the change history log.
+         */
+        function renderChangeLog() {
+            const list = document.getElementById('change-log-list');
+            list.innerHTML = '';
+            if (undoStack.length === 0) {
+                list.innerHTML = '<li class="text-slate-400">No changes recorded.</li>';
+                return;
+            }
+            // Display in reverse chronological order
+            [...undoStack].reverse().forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item.description;
+                li.className = "p-2 bg-white rounded-md shadow-sm border border-slate-200";
+                list.appendChild(li);
+            });
+        }
+
+        /**
+         * Renders all fixed cost cards.
+         */
+        function renderFixedCosts() {
+            const container = document.getElementById('fixed-costs-container');
+            container.innerHTML = '';
+            if (state.fixedCosts.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center p-8 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+                    <p class="text-slate-500">No fixed costs have been added yet.</p>
+                    <p class="text-sm text-slate-400 mt-1">Click 'Add Cost' to get started.</p>
+                </div>`;
+                return;
+            }
+            state.fixedCosts.forEach(cost => {
+                const card = document.createElement('div');
+                card.className = 'bg-white p-5 rounded-xl shadow-md border border-slate-200 flex flex-col';
+                
+                const costAmountHtml = `<p class="text-2xl font-bold text-slate-800">${formatCurrency(cost.amount)}</p>`;
+
+                card.innerHTML = `
+                    <div class="flex-grow">
+                        <h4 class="text-lg font-bold text-slate-800">${cost.label}</h4>
+                        <div class="text-sm text-slate-500 mt-2 space-y-1">
+                            ${costAmountHtml}
+                            <p class="text-xs text-slate-400">Annual Amount</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-200 flex justify-end gap-2">
+                        <button class="edit-fixed-cost-btn text-sm font-semibold text-sky-600 hover:text-sky-800 transition-colors" data-id="${cost.id}">Edit</button>
+                        <button class="delete-fixed-cost-btn text-sm font-semibold text-red-500 hover:text-red-700 transition-colors" data-id="${cost.id}">Delete</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            const addCostCard = createAddCard('Add Fixed Cost', 'add-fixed-cost-btn');
+            container.appendChild(addCostCard);
+        }
+
+        /**
+         * Renders all role cards.
+         */
+        function renderRoles() {
+            const container = document.getElementById('roles-container');
+            container.innerHTML = '';
+            if (state.roles.length === 0) {
+                 container.innerHTML = `<div class="col-span-full text-center p-8 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+                    <p class="text-slate-500">No roles have been added yet.</p>
+                    <p class="text-sm text-slate-400 mt-1">Click 'Add Role' to get started.</p>
+                </div>`;
+                return;
+            }
+            state.roles.forEach(role => {
+                const nonBillableHours = role.nonBillable.reduce((sum, item) => sum + (item.hours || 0), 0);
+                const roleYearlyBillableHours = state.settings.baseBillableHours - nonBillableHours;
+                
+                const card = document.createElement('div');
+                card.className = 'bg-white p-5 rounded-xl shadow-md border border-slate-200 flex flex-col overflow-hidden';
+                card.style.borderTop = `5px solid ${role.backgroundColor || '#e2e8f0'}`;
+
+                card.innerHTML = `
+                    <div class="flex-grow">
+                        <h4 class="text-lg font-bold text-slate-800">${role.name}</h4>
+                        <div class="text-sm text-slate-500 mt-2 space-y-1">
+                            <p><strong>Billable Hours/Year:</strong> ${formatNumber(roleYearlyBillableHours)}</p>
+                            <p><strong>Benefits %:</strong> ${role.benefitsOverride !== null && role.benefitsOverride !== '' ? `${role.benefitsOverride}% (Override)` : `${state.settings.defaultBenefitsPercentage}% (Default)`}</p>
+                        </div>
+                        ${role.nonBillable.length > 0 ? `
+                        <div class="mt-3">
+                            <p class="text-xs font-semibold uppercase text-slate-400">Non-Billable Activities</p>
+                            <ul class="text-sm list-disc list-inside mt-1 text-slate-600">
+                                ${role.nonBillable.map(act => `<li>${act.activity}: ${act.hours} hrs</li>`).join('')}
+                            </ul>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-200 flex justify-end gap-2">
+                        <button class="edit-role-btn text-sm font-semibold text-sky-600 hover:text-sky-800 transition-colors" data-id="${role.id}">Edit</button>
+                        <button class="delete-role-btn text-sm font-semibold text-red-500 hover:text-red-700 transition-colors" data-id="${role.id}">Delete</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            const addRoleCard = createAddCard('Add New Role', 'add-role-btn');
+            container.appendChild(addRoleCard);
+        }
+        
+        /**
+         * Renders all person cards.
+         */
+        function renderPeople() {
+            const container = document.getElementById('people-container');
+            container.innerHTML = '';
+
+            const countDescendants = (personId, peopleById) => {
+                const person = peopleById.get(personId);
+                if (!person || !person.children || person.children.length === 0) {
+                    return 0;
+                }
+                let count = person.children.length;
+                person.children.forEach(child => {
+                    count += countDescendants(child.id, peopleById);
+                });
+                return count;
+            };
+
+            const createPersonCardHtml = (person, descendantCount = 0) => {
+                const role = state.roles.find(r => r.id === person.roleId);
+                const supervisor = person.supervisorId ? state.people.find(p => p.id === person.supervisorId) : null;
+                const monthsWorked = person.months.filter(Boolean).length;
+                const salaryHtml = state.settings.showSalaries 
+                    ? `<p><strong>Yearly Salary:</strong> ${formatCurrency(person.salary)}</p>`
+                    : '';
+                
+                const collapseButtonHtml = descendantCount > 0 ? `
+                    <button class="toggle-collapse-btn" data-person-id="${person.id}">
+                        ${person.isCollapsed ? `+ ${descendantCount}` : '−'}
+                    </button>
+                ` : '';
+
+                return `
+                    <div class="person-card bg-white p-5 rounded-xl shadow-md border border-slate-200 flex flex-col relative" draggable="true" data-person-id="${person.id}" style="border-top: 5px solid ${role?.backgroundColor || '#e2e8f0'}">
+                        ${collapseButtonHtml}
+                        <div class="flex-grow">
+                            <h4 class="text-lg font-bold text-slate-800">${person.name}</h4>
+                            <p class="text-sm font-medium" style="color: ${role?.backgroundColor || '#0369a1'}">${role ? role.name : 'No Role Assigned'}</p>
+                            <div class="text-sm text-slate-500 mt-2 space-y-1">
+                                <p><strong>Supervisor:</strong> ${supervisor ? supervisor.name : 'N/A'}</p>
+                                ${salaryHtml}
+                                <p><strong>Paid by Fund:</strong> ${person.fundPercentage}%</p>
+                                <p><strong>Months Active:</strong> ${monthsWorked} / 12</p>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-slate-200 flex justify-end gap-2">
+                            <button class="edit-person-btn text-sm font-semibold text-sky-600 hover:text-sky-800 transition-colors" data-id="${person.id}">Edit</button>
+                            <button class="delete-person-btn text-sm font-semibold text-red-500 hover:text-red-700 transition-colors" data-id="${person.id}">Delete</button>
+                        </div>
+                    </div>
+                `;
+            };
+
+            if (state.people.length === 0) {
+                 const emptyGrid = document.createElement('div');
+                 emptyGrid.className = 'card-container';
+                 emptyGrid.innerHTML = `<div class="col-span-full text-center p-8 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+                    <p class="text-slate-500">No personnel have been added yet.</p>
+                    <p class="text-sm text-slate-400 mt-1">Add roles first, then add personnel.</p>
+                </div>`;
+                 emptyGrid.appendChild(createAddCard('Add New Person', 'add-person-btn'));
+                 container.appendChild(emptyGrid);
+                 return;
+            }
+
+            const peopleById = new Map(state.people.map(p => [p.id, { ...p, children: [] }]));
+            const rootPeople = [];
+
+            state.people.forEach(person => {
+                const personNode = peopleById.get(person.id);
+                if (person.supervisorId && peopleById.has(person.supervisorId)) {
+                    peopleById.get(person.supervisorId).children.push(personNode);
+                } else {
+                    rootPeople.push(personNode);
+                }
+            });
+
+            // Managers are roots with children, individuals are roots without.
+            const managers = rootPeople.filter(p => p.children && p.children.length > 0).sort((a, b) => a.name.localeCompare(b.name));
+            const individuals = rootPeople.filter(p => !p.children || p.children.length === 0).sort((a, b) => a.name.localeCompare(b.name));
+
+            function renderTeam(person) {
+                const role = state.roles.find(r => r.id === person.roleId);
+                const descendantCount = countDescendants(person.id, peopleById);
+                const personCardHtml = createPersonCardHtml(person, descendantCount);
+                
+                let childrenHtml = '';
+                if (person.children && person.children.length > 0) {
+                    childrenHtml = person.children
+                        .sort((a, b) => a.name.localeCompare(b.name))
+                        .map(child => renderTeam(child))
+                        .join('');
+                }
+
+                const teamContainerClass = person.isCollapsed ? 'collapsed' : '';
+                const teamHtml = `
+                    <div class="team-container ${teamContainerClass}" data-team-for="${person.id}">
+                        <div class="pl-8 border-l-4 drop-zone" style="border-color: ${role?.backgroundColor || '#e2e8f0'}" data-supervisor-id="${person.id}">
+                            <div class="card-container">
+                                ${childrenHtml}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // A person and their team is a full-width block if they have children.
+                if (descendantCount > 0) {
+                     return `
+                        <div class="col-span-full">
+                            <div class="mb-4">
+                                ${personCardHtml}
+                            </div>
+                            ${teamHtml}
+                        </div>
+                    `;
+                }
+                // Otherwise, they are an individual card within a grid.
+                return personCardHtml;
+            }
+
+            // Render individuals without a supervisor first
+            if (individuals.length > 0) {
+                const individualContainer = document.createElement('div');
+                individualContainer.className = 'card-container drop-zone';
+                individualContainer.dataset.supervisorId = 'null';
+                
+                const individualsHtml = individuals.map(p => createPersonCardHtml(p)).join('');
+                individualContainer.innerHTML = individualsHtml;
+
+                individualContainer.appendChild(createAddCard('Add New Person', 'add-person-btn'));
+                container.appendChild(individualContainer);
+
+                // Add a divider if there are also managers
+                if (managers.length > 0) {
+                    const divider = document.createElement('hr');
+                    divider.className = 'my-8 border-slate-200';
+                    container.appendChild(divider);
+                }
+            }
+            
+            // Render managers and their teams
+            if (managers.length > 0) {
+                const managerContainer = document.createElement('div');
+                managerContainer.className = 'card-container';
+                
+                const managersHtml = managers.map(p => renderTeam(p)).join('');
+                managerContainer.innerHTML = managersHtml;
+
+                // If there are no individuals, the "Add" button goes in the manager section.
+                if (individuals.length === 0) {
+                    const dropZone = managerContainer.querySelector('.drop-zone') || managerContainer;
+                    dropZone.appendChild(createAddCard('Add New Person', 'add-person-btn'));
+                }
+                
+                container.appendChild(managerContainer);
+            }
+
+            // If there are no people at all, show the empty state.
+            if (state.people.length === 0) {
+                 const emptyGrid = document.createElement('div');
+                 emptyGrid.className = 'card-container';
+                 emptyGrid.innerHTML = `<div class="col-span-full text-center p-8 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+                    <p class="text-slate-500">No personnel have been added yet.</p>
+                    <p class="text-sm text-slate-400 mt-1">Add roles first, then add personnel.</p>
+                </div>`;
+                 emptyGrid.appendChild(createAddCard('Add New Person', 'add-person-btn'));
+                 container.appendChild(emptyGrid);
+                 return;
+            }
+        }
+
+
+        // --- HANDSONTABLE WORKBOOK ---
+
+        function initializeHandsontables() {
+            // Destroy existing instances if they exist to prevent memory leaks
+            if (hotMonthlyRecovery) { hotMonthlyRecovery.destroy(); hotMonthlyRecovery = null; }
+            if (hotRoles) { hotRoles.destroy(); hotRoles = null; }
+            if (hotPeople) { hotPeople.destroy(); hotPeople = null; }
+            if (hotFixedCosts) { hotFixedCosts.destroy(); hotFixedCosts = null; }
+
+            // --- Monthly Recovery Table ---
+            const monthlyRecoveryContainer = document.getElementById('hot-monthly-recovery');
+            const monthNamesForHot = ['July', 'August', 'September', 'October', 'November', 'December', 'January', 'February', 'March', 'April', 'May', 'June'];
+            const monthlyRecoveryData = monthNamesForHot.map((month, index) => ({
+                month: month,
+                projected: getMonthlyProjectedRevenue(index),
+                actual: state.monthlyRecovery[index]
+            }));
+            hotMonthlyRecovery = new Handsontable(monthlyRecoveryContainer, {
+                data: monthlyRecoveryData,
+                columns: [
+                    { data: 'month', title: 'Month', readOnly: true, width: 120 },
+                    { data: 'projected', title: 'Projected Recovery', type: 'numeric', numericFormat: { pattern: '$0,0.00' }, readOnly: true, width: 150 },
+                    { data: 'actual', title: 'Actual Recovery', type: 'numeric', numericFormat: { pattern: '$0,0.00' }, width: 150 }
+                ],
+                colHeaders: true,
+                rowHeaders: true,
+                manualColumnResize: true,
+                licenseKey: 'non-commercial-and-evaluation',
+                stretchH: 'all',
+                afterChange: (changes, source) => {
+                    if (source === 'loadData' || !changes) return;
+                    changes.forEach(([row, prop, oldValue, newValue]) => {
+                        if (prop === 'actual') {
+                            const storedValue = (newValue === '' || newValue === null || isNaN(parseFloat(newValue))) ? null : parseFloat(newValue);
+                            if(state.monthlyRecovery[row] !== storedValue) {
+                                pushToUndoStack(`Updated ${monthNamesForHot[row]} recovery to ${storedValue === null ? 'Projected' : formatCurrency(storedValue)}`);
+                                state.monthlyRecovery[row] = storedValue;
+                                saveState();
+                                calculateAndRenderSummary();
+                                // Re-render to update projected values in other tables if they depend on this.
+                                setTimeout(() => render(), 0);
+                            }
+                        }
+                    });
+                }
+            });
+
+            // --- Roles Table ---
+            const rolesContainer = document.getElementById('hot-roles');
+            
+            function nonBillableArrayRenderer(instance, td, row, col, prop, value, cellProperties) {
+                const displayText = (value || []).map(item => `${item.activity}:${item.hours}`).join('\n');
+                Handsontable.renderers.TextRenderer.apply(this, [instance, td, row, col, prop, displayText, cellProperties]);
+                td.style.whiteSpace = 'pre-line'; // To respect newlines
+            }
+
+            const rolesData = state.roles.map(r => {
+                const nonBillableHours = (r.nonBillable || []).reduce((sum, item) => sum + (item.hours || 0), 0);
+                const billableHours = state.settings.baseBillableHours - nonBillableHours;
+                return { ...r, billableHours };
+            });
+            hotRoles = new Handsontable(rolesContainer, {
+                data: rolesData,
+                columns: [
+                    { data: 'name', title: 'Role Name', width: 200 },
+                    { data: 'backgroundColor', title: 'Accent Color', width: 100 },
+                    { data: 'benefitsOverride', title: 'Benefits % Override', type: 'numeric', width: 150 },
+                    { data: 'billableHours', title: 'Billable Hours/Year', type: 'numeric', readOnly: true, width: 160 },
+                    { data: 'nonBillable', title: 'Non-Billable (Activity:Hours)', renderer: nonBillableArrayRenderer, editor: 'textarea', width: 300 }
+                ],
+                colHeaders: true,
+                rowHeaders: true,
+                manualColumnResize: true,
+                licenseKey: 'non-commercial-and-evaluation',
+                stretchH: 'all',
+                afterChange: (changes, source) => {
+                    if (source === 'loadData' || !changes) return;
+                    let changed = false;
+                    changes.forEach(([row, prop, oldValue, newValue]) => {
+                        let processedValue = newValue;
+                        // For new rows, we need to create a new role object.
+                        const isNewRow = row >= state.roles.length;
+
+                        if (prop === 'nonBillable' && typeof newValue === 'string') {
+                            processedValue = newValue.split('\n').map(line => {
+                                const parts = line.split(':');
+                                const activity = parts[0]?.trim();
+                                const hours = parseFloat(parts[1]) || 0;
+                                if (activity) return { activity, hours };
+                            }).filter(Boolean);
+                        }
+
+                        if (isNewRow) {
+                            if (newValue !== null && newValue !== '') {
+                                const newRole = { id: uniqueId(), name: '', nonBillable: [], benefitsOverride: null, backgroundColor: '#e2e8f0' };
+                                newRole[prop] = processedValue;
+                                state.roles.push(newRole);
+                                pushToUndoStack(`Added new Role`);
+                                changed = true;
+                            }
+                        } else {
+                            const role = state.roles[row];
+                             if (role[prop] !== processedValue) {
+                                pushToUndoStack(`Updated Role '${role.name}'`);
+                                role[prop] = processedValue;
+                                changed = true;
+                            }
+                        }
+                    });
+                    if (changed) {
+                        saveState();
+                        calculateAndRenderSummary();
+                        // A small delay to allow HOT to process before re-rendering, which can solve some refresh issues.
+                        setTimeout(() => render(), 0); 
+                    }
+                },
+                afterRemoveRow: (index, amount) => {
+                    const removed = state.roles.splice(index, amount);
+                    removed.forEach(role => {
+                         // Check if role name exists, as it might be a blank spare row
+                        if (role.name) pushToUndoStack(`Removed Role '${role.name}'`);
+                    });
+                    saveState();
+                    calculateAndRenderSummary();
+                    render(); // Re-render to update the HOT data sources for other tables
+                },
+            });
+
+            // --- People Table ---
+            const peopleContainer = document.getElementById('hot-people');
+            const monthNames = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+            
+            // Prepare data: flatten months array and map IDs to names for display
+            const peopleData = state.people.map(p => {
+                const personData = { ...p };
+                monthNames.forEach((m, i) => {
+                    personData[`month_${i}`] = p.months[i];
+                });
+                return personData;
+            });
+
+            const peopleColumns = [
+                { data: 'name', title: 'Name', width: 150 },
+                { data: 'roleId', title: 'Role', type: 'dropdown', source: state.roles.map(r => r.name), width: 150 },
+                { data: 'supervisorId', title: 'Supervisor', type: 'dropdown', source: ['', ...state.people.map(p => p.name)], width: 150 },
+                { data: 'fundPercentage', title: '% From Fund', type: 'numeric', width: 100 },
+                ...monthNames.map((name, index) => ({
+                    data: `month_${index}`,
+                    title: name,
+                    type: 'checkbox',
+                    width: 40
+                }))
+            ];
+
+            if (state.settings.showSalaries) {
+                peopleColumns.splice(3, 0, { data: 'salary', title: 'Salary', type: 'numeric', numericFormat: { pattern: '$0,0.00' }, width: 100 });
+            }
+
+            hotPeople = new Handsontable(peopleContainer, {
+                data: peopleData,
+                columns: peopleColumns,
+                colHeaders: true,
+                rowHeaders: true,
+                contextMenu: true,
+                manualRowMove: true,
+                manualColumnResize: true,
+                licenseKey: 'non-commercial-and-evaluation',
+                minSpareRows: 1,
+                stretchH: 'all',
+                afterChange: (changes, source) => {
+                    if (source === 'loadData' || !changes) return;
+                    let changed = false;
+                    changes.forEach(([row, prop, oldValue, newValue]) => {
+                        const isNewRow = row >= state.people.length;
+                        let person;
+
+                        if (isNewRow) {
+                             if (newValue !== null && newValue !== '') {
+                                person = { id: uniqueId(), name: '', months: Array(12).fill(true), salary: 0, fundPercentage: 100, roleId: null, supervisorId: null };
+                                state.people.push(person);
+                                pushToUndoStack(`Added new Person`);
+                                changed = true;
+                            } else {
+                                return; // Don't process empty changes on spare row
+                            }
+                        } else {
+                            person = state.people[row];
+                        }
+                        
+                        let processedValue = newValue;
+                        if (prop === 'roleId') { // `newValue` is the role name
+                            const role = state.roles.find(r => r.name === newValue);
+                            processedValue = role ? role.id : null;
+                            if (person.roleId !== processedValue) changed = true;
+                        } else if (prop === 'supervisorId') { // `newValue` is the supervisor name
+                            const supervisor = state.people.find(p => p.name === newValue);
+                            processedValue = supervisor ? supervisor.id : null;
+                            if (person.supervisorId !== processedValue) changed = true;
+                        } else if (prop.startsWith('month_')) {
+                            const monthIndex = parseInt(prop.split('_')[1], 10);
+                            if (person.months[monthIndex] !== newValue) {
+                                person.months[monthIndex] = !!newValue; // Coerce to boolean
+                                changed = true;
+                            }
+                            return; // Skip the generic property update below
+                        } else {
+                            if (person[prop] !== processedValue) changed = true;
+                        }
+                        
+                        if (changed) {
+                            // Don't modify `prop` directly, use the processed value
+                            const dataProp = prop === 'roleId' ? 'roleId' : (prop === 'supervisorId' ? 'supervisorId' : prop);
+                            person[dataProp] = processedValue;
+                            if (!isNewRow) {
+                                pushToUndoStack(`Updated Person '${person.name}'`);
+                            }
+                        }
+                    });
+
+                    if (changed) {
+                        saveState();
+                        calculateAndRenderSummary();
+                        setTimeout(() => render(), 0);
+                    }
+                },
+                afterRemoveRow: (index, amount) => {
+                    const removed = state.people.splice(index, amount);
+                     removed.forEach(person => {
+                        if (person.name) pushToUndoStack(`Removed Person '${person.name}'`);
+                    });
+                    saveState();
+                    calculateAndRenderSummary();
+                    render();
+                },
+            });
+
+            // --- Fixed Costs Table ---
+            const fixedCostsContainer = document.getElementById('hot-fixed-costs');
+            const fixedCostsData = state.fixedCosts.map(c => ({...c}));
+            hotFixedCosts = new Handsontable(fixedCostsContainer, {
+                data: fixedCostsData,
+                columns: [
+                    { data: 'label', title: 'Cost Label', width: 250 },
+                    { data: 'amount', title: 'Annual Amount', type: 'numeric', numericFormat: { pattern: '$0,0.00' } }
+                ],
+                colHeaders: true,
+                rowHeaders: true,
+                contextMenu: ['row_above', 'row_below', 'remove_row'],
+                manualRowMove: true,
+                manualColumnResize: true,
+                licenseKey: 'non-commercial-and-evaluation',
+                minSpareRows: 1,
+                stretchH: 'all',
+                afterChange: (changes, source) => {
+                    if (source === 'loadData' || !changes) return;
+                     let changed = false;
+                    changes.forEach(([row, prop, oldValue, newValue]) => {
+                        const isNewRow = row >= state.fixedCosts.length;
+
+                        if (isNewRow) {
+                             if (newValue !== null && newValue !== '') {
+                                const newCost = { id: uniqueId(), label: '', amount: 0 };
+                                newCost[prop] = newValue;
+                                state.fixedCosts.push(newCost);
+                                pushToUndoStack(`Added Fixed Cost`);
+                                changed = true;
+                            }
+                        } else {
+                            const cost = state.fixedCosts[row];
+                            if (cost[prop] !== newValue) {
+                                pushToUndoStack(`Updated Fixed Cost '${cost.label}'`);
+                                cost[prop] = newValue;
+                                changed = true;
+                            }
+                        }
+                    });
+                    if (changed) {
+                        saveState();
+                        calculateAndRenderSummary();
+                    }
+                },
+                 afterRemoveRow: (index, amount) => {
+                    const removed = state.fixedCosts.splice(index, amount);
+                    removed.forEach(cost => {
+                        if (cost.label) pushToUndoStack(`Removed Fixed Cost '${cost.label}'`);
+                    });
+                    saveState();
+                    calculateAndRenderSummary();
+                    render();
+                },
+            });
+        }
+
+
+        // --- UI HELPER ---
+        /**
+         * Creates a skeleton "Add" card.
+         * @param {string} text - The text for the button.
+         * @param {string} id - The id for the button.
+         * @returns {HTMLElement} The created card element.
+         */
+        function createAddCard(text, id) {
+            const card = document.createElement('div');
+            card.className = 'bg-slate-50 p-5 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center';
+            card.innerHTML = `
+                <button id="${id}" class="w-full h-full text-center text-slate-500 hover:text-sky-600 transition-colors">
+                    <span class="text-4xl font-thin">+</span>
+                    <span class="block mt-1 font-semibold">${text}</span>
+                </button>
+            `;
+            return card;
+        }
+
+
+        // --- MODAL HANDLING ---
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body');
+        const modalSaveBtn = document.getElementById('modal-save-btn');
+        let currentFormHandler = null;
+
+        function openModal(title, formHtml, formHandler) {
+            modalTitle.textContent = title;
+            modalBody.innerHTML = formHtml;
+            currentFormHandler = formHandler;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal() {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            modalBody.innerHTML = '';
+            currentFormHandler = null;
+        }
+        
+        modalSaveBtn.addEventListener('click', () => {
+             if (currentFormHandler) {
+                currentFormHandler();
+             }
+        });
+
+        document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+        document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
+
+        // --- ROLE CRUD ---
+        
+        /**
+         * Renders the form for adding or editing a role.
+         * @param {object|null} role - The role object to edit, or null to add.
+         */
+        function showRoleForm(role = null) {
+            const isEditing = role !== null;
+            const nonBillableHtml = (role?.nonBillable || [{ activity: '', hours: '' }])
+                .map((item, index) => `
+                    <div class="flex gap-2 items-center non-billable-item">
+                        <input type="text" placeholder="Activity (e.g., Training)" value="${item.activity || ''}" class="flex-grow p-2 border border-slate-300 rounded-md shadow-sm">
+                        <input type="number" placeholder="Hours" value="${item.hours || ''}" class="w-24 p-2 border border-slate-300 rounded-md shadow-sm">
+                        ${index > 0 ? '<button type="button" class="remove-activity-btn text-red-500 hover:text-red-700 font-bold text-2xl leading-none">&times;</button>' : ''}
+                    </div>
+                `).join('');
+
+            const formHtml = `
+                <form id="role-form" class="space-y-4">
+                    <input type="hidden" id="role-id" value="${role?.id || ''}">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="md:col-span-2">
+                            <label for="role-name" class="block text-sm font-medium text-slate-700 mb-1">Role Name</label>
+                            <input type="text" id="role-name" value="${role?.name || ''}" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500" required>
+                        </div>
+                        <div>
+                            <label for="role-color" class="block text-sm font-medium text-slate-700 mb-1">Accent Color</label>
+                            <input type="color" id="role-color" value="${role?.backgroundColor || '#0284c7'}" class="w-full h-10 p-1 border border-slate-300 rounded-md">
+                        </div>
+                    </div>
+                     <div>
+                        <label for="role-benefits-override" class="block text-sm font-medium text-slate-700 mb-1">Benefits % Override (Optional)</label>
+                        <input type="number" id="role-benefits-override" value="${role?.benefitsOverride || ''}" placeholder="Uses default if blank" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Non-Billable Activities</label>
+                        <div id="non-billable-container" class="space-y-2">
+                           ${nonBillableHtml}
+                        </div>
+                        <button type="button" id="add-activity-btn" class="mt-2 text-sm font-semibold text-sky-600 hover:text-sky-800 transition-colors">+ Add Activity</button>
+                    </div>
+                </form>
+            `;
+
+            const formHandler = () => {
+                const id = document.getElementById('role-id').value;
+                const name = document.getElementById('role-name').value;
+                if (!name) { alert('Role Name is required.'); return; }
+                
+                const nonBillableItems = Array.from(document.querySelectorAll('.non-billable-item')).map(item => ({
+                    activity: item.children[0].value,
+                    hours: parseFloat(item.children[1].value) || 0
+                })).filter(item => item.activity);
+
+                const newRole = {
+                    id: id || uniqueId(),
+                    name: name,
+                    backgroundColor: document.getElementById('role-color').value,
+                    benefitsOverride: document.getElementById('role-benefits-override').value !== '' ? parseFloat(document.getElementById('role-benefits-override').value) : null,
+                    nonBillable: nonBillableItems
+                };
+
+                const description = isEditing ? `Edited Role: '${name}'` : `Added Role: '${name}'`;
+                pushToUndoStack(description);
+
+                if (isEditing) {
+                    const index = state.roles.findIndex(r => r.id === id);
+                    if (index !== -1) state.roles[index] = newRole;
+                } else {
+                    state.roles.push(newRole);
+                }
+                saveState();
+                render();
+                closeModal();
+            };
+
+            openModal(isEditing ? 'Edit Role' : 'Add New Role', formHtml, formHandler);
+
+            // Add event listeners for dynamic form elements
+            document.getElementById('add-activity-btn').addEventListener('click', () => {
+                const container = document.getElementById('non-billable-container');
+                const newItem = document.createElement('div');
+                newItem.className = 'flex gap-2 items-center non-billable-item';
+                newItem.innerHTML = `
+                    <input type="text" placeholder="Activity Name" class="flex-grow p-2 border border-slate-300 rounded-md shadow-sm">
+                    <input type="number" placeholder="Hours" class="w-24 p-2 border border-slate-300 rounded-md shadow-sm">
+                    <button type="button" class="remove-activity-btn text-red-500 hover:text-red-700 font-bold text-2xl leading-none">&times;</button>
+                `;
+                container.appendChild(newItem);
+            });
+            
+            modalBody.addEventListener('click', (e) => {
+                if (e.target.classList.contains('remove-activity-btn')) {
+                    e.target.parentElement.remove();
+                }
+            });
+        }
+        
+        document.getElementById('roles-container').addEventListener('click', (e) => {
+            const target = e.target;
+            
+            if (target.closest('#add-role-btn')) {
+                showRoleForm();
+                return;
+            }
+
+            const roleId = target.dataset.id;
+            if (!roleId) return;
+
+            if (target.classList.contains('edit-role-btn')) {
+                const role = state.roles.find(r => r.id === roleId);
+                if(role) showRoleForm(role);
+            }
+            if (target.classList.contains('delete-role-btn')) {
+                // Check if role is in use
+                const isInUse = state.people.some(p => p.roleId === roleId);
+                if (isInUse) {
+                    alert('This role cannot be deleted because it is assigned to one or more people. Please reassign them first.');
+                    return;
+                }
+                showConfirmModal(
+                    'Delete Role?', 
+                    'Are you sure you want to delete this role? This action cannot be undone.',
+                    () => {
+                        pushToUndoStack(`Deleted Role: '${role.name}'`);
+                        state.roles = state.roles.filter(r => r.id !== roleId);
+                        saveState();
+                        render();
+                    }
+                );
+            }
+        });
+
+
+        // --- FIXED COST CRUD ---
+
+        /**
+         * Renders the form for adding or editing a fixed cost.
+         * @param {object|null} cost - The cost object to edit, or null to add.
+         */
+        function showFixedCostForm(cost = null) {
+            const isEditing = cost !== null;
+            
+            const amountValueAttr = `value="${cost?.amount || ''}"`;
+            const amountPlaceholder = 'e.g., 5000';
+
+            const formHtml = `
+                <form id="fixed-cost-form" class="space-y-4">
+                    <input type="hidden" id="fixed-cost-id" value="${cost?.id || ''}">
+                    <div>
+                        <label for="fixed-cost-label" class="block text-sm font-medium text-slate-700 mb-1">Cost Label</label>
+                        <input type="text" id="fixed-cost-label" value="${cost?.label || ''}" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500" required placeholder="e.g., Software Licenses">
+                    </div>
+                    <div>
+                        <label for="fixed-cost-amount" class="block text-sm font-medium text-slate-700 mb-1">Annual Amount ($)</label>
+                        <input type="number" id="fixed-cost-amount" ${amountValueAttr} class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500" placeholder="${amountPlaceholder}">
+                    </div>
+                </form>
+            `;
+
+            const formHandler = () => {
+                const id = document.getElementById('fixed-cost-id').value;
+                const label = document.getElementById('fixed-cost-label').value;
+                if (!label) { alert('Cost Label is required.'); return; }
+                
+                const amountInput = document.getElementById('fixed-cost-amount');
+                let amount = parseFloat(amountInput.value) || 0;
+
+                const newCost = {
+                    id: id || uniqueId(),
+                    label,
+                    amount,
+                };
+
+                pushToUndoStack(isEditing ? `Edited Fixed Cost: '${label}'` : `Added Fixed Cost: '${label}'`);
+
+                if (isEditing) {
+                    const index = state.fixedCosts.findIndex(c => c.id === id);
+                    if (index !== -1) state.fixedCosts[index] = newCost;
+                } else {
+                    state.fixedCosts.push(newCost);
+                }
+                saveState();
+                render();
+                closeModal();
+            };
+
+            openModal(isEditing ? 'Edit Fixed Cost' : 'Add New Fixed Cost', formHtml, formHandler);
+        }
+
+        document.getElementById('fixed-costs-container').addEventListener('click', (e) => {
+            const target = e.target;
+
+            if (target.closest('#add-fixed-cost-btn')) {
+                showFixedCostForm();
+                return;
+            }
+
+            const costId = target.dataset.id;
+            if (!costId) return;
+
+            if (target.classList.contains('edit-fixed-cost-btn')) {
+                const cost = state.fixedCosts.find(c => c.id === costId);
+                if (cost) showFixedCostForm(cost);
+            }
+            if (target.classList.contains('delete-fixed-cost-btn')) {
+                const cost = state.fixedCosts.find(c => c.id === costId);
+                if (!cost) return;
+
+                showConfirmModal(
+                    'Delete Fixed Cost?',
+                    'Are you sure you want to delete this cost? This action cannot be undone.',
+                    () => {
+                        pushToUndoStack(`Deleted Fixed Cost: '${cost.label}'`);
+                        state.fixedCosts = state.fixedCosts.filter(c => c.id !== costId);
+                        saveState();
+                        render();
+                    }
+                );
+            }
+        });
+
+        // --- PERSON CRUD ---
+
+        /**
+         * Renders the form for adding or editing a person.
+         * @param {object|null} person - The person object to edit, or null to add.
+         */
+        function showPersonForm(person = null) {
+            const isEditing = person !== null;
+
+            if (state.roles.length === 0) {
+                alert('Please add a role before adding a person.');
+                return;
+            }
+
+            const salaryValueAttr = (isEditing && !state.settings.showSalaries) ? '' : `value="${person?.salary || ''}"`;
+            const salaryPlaceholder = (isEditing && !state.settings.showSalaries) ? 'Salary hidden. Enter to update.' : 'e.g., 85000';
+
+            const roleOptions = state.roles.map(role => 
+                `<option value="${role.id}" ${person?.roleId === role.id ? 'selected' : ''}>${role.name}</option>`
+            ).join('');
+            
+            const supervisorOptions = state.people
+                .filter(p => !isEditing || p.id !== person.id) // Exclude self from supervisor list when editing
+                .map(p => `<option value="${p.id}" ${person?.supervisorId === p.id ? 'selected' : ''}>${p.name}</option>`)
+                .join('');
+            
+            const monthNames = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+            const monthCheckboxes = monthNames.map((name, index) => {
+                const isChecked = person?.months[index] ?? true;
+                return `
+                    <div>
+                        <input type="checkbox" id="month-${index}" class="month-checkbox hidden" ${isChecked ? 'checked' : ''}>
+                        <label for="month-${index}" class="month-checkbox-label">${name}</label>
+                    </div>
+                `
+            }).join('');
+
+            const formHtml = `
+                <form id="person-form" class="space-y-4">
+                    <input type="hidden" id="person-id" value="${person?.id || ''}">
+                     <div>
+                        <label for="person-name" class="block text-sm font-medium text-slate-700 mb-1">Person's Name</label>
+                        <input type="text" id="person-name" value="${person?.name || ''}" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500" required>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <div>
+                            <label for="person-role" class="block text-sm font-medium text-slate-700 mb-1">Role</label>
+                            <select id="person-role" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500">
+                               ${roleOptions}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="person-supervisor" class="block text-sm font-medium text-slate-700 mb-1">Supervisor (Optional)</label>
+                            <select id="person-supervisor" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500">
+                                <option value="">-- None --</option>
+                                ${supervisorOptions}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="person-salary" class="block text-sm font-medium text-slate-700 mb-1">Full Yearly Salary</label>
+                            <input type="number" id="person-salary" ${salaryValueAttr} class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500" placeholder="${salaryPlaceholder}">
+                        </div>
+                        <div>
+                           <label for="person-fund-percentage" class="block text-sm font-medium text-slate-700 mb-1">% Paid by Fund</label>
+                           <input type="number" id="person-fund-percentage" value="${person?.fundPercentage || '100'}" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500" placeholder="e.g., 100">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Months in Position (Fiscal Year)</label>
+                        <div class="grid grid-cols-6 md:grid-cols-12 gap-2 mt-2">
+                           ${monthCheckboxes}
+                        </div>
+                    </div>
+                </form>
+            `;
+            
+            const formHandler = () => {
+                const id = document.getElementById('person-id').value;
+                const name = document.getElementById('person-name').value;
+                 if (!name) { alert('Person Name is required.'); return; }
+
+                const months = Array.from({length: 12}, (_, i) => document.getElementById(`month-${i}`).checked);
+
+                const salaryInput = document.getElementById('person-salary');
+                let salary = parseFloat(salaryInput.value) || 0;
+
+                if (isEditing && !state.settings.showSalaries && salaryInput.value === '') {
+                    const originalPerson = state.people.find(p => p.id === id);
+                    if (originalPerson) salary = originalPerson.salary;
+                }
+
+                const newPerson = {
+                    id: id || uniqueId(),
+                    name,
+                    roleId: document.getElementById('person-role').value,
+                    supervisorId: document.getElementById('person-supervisor').value || null,
+                    salary: salary,
+                    fundPercentage: parseFloat(document.getElementById('person-fund-percentage').value) || 0,
+                    months,
+                    isCollapsed: (isEditing && person?.isCollapsed) || false,
+                };
+
+                const description = isEditing ? `Edited Person: '${name}'` : `Added Person: '${name}'`;
+                pushToUndoStack(description);
+
+                if (isEditing) {
+                    const index = state.people.findIndex(p => p.id === id);
+                    if (index !== -1) state.people[index] = newPerson;
+                } else {
+                    state.people.push(newPerson);
+                }
+                saveState();
+                render();
+                closeModal();
+            };
+
+            openModal(isEditing ? 'Edit Person' : 'Add New Person', formHtml, formHandler);
+        }
+
+        document.getElementById('people-container').addEventListener('click', (e) => {
+            const target = e.target;
+
+            if (target.closest('#add-person-btn')) {
+                showPersonForm();
+                return;
+            }
+
+            const personId = target.dataset.id;
+            if (!personId) return;
+
+            if (target.classList.contains('edit-person-btn')) {
+                const person = state.people.find(p => p.id === personId);
+                if(person) showPersonForm(person);
+            }
+            if (target.classList.contains('delete-person-btn')) {
+                const personToDelete = state.people.find(p => p.id === personId);
+                if (!personToDelete) return;
+
+                 showConfirmModal(
+                    'Delete Person?', 
+                    'Are you sure you want to delete this person? This action cannot be undone.',
+                    () => {
+                        pushToUndoStack(`Deleted Person: '${personToDelete.name}'`);
+                        // Also check if this person is a supervisor and handle if necessary (e.g., set to null)
+                        state.people.forEach(p => {
+                            if (p.supervisorId === personId) {
+                                p.supervisorId = null;
+                            }
+                        });
+                        state.people = state.people.filter(p => p.id !== personId);
+                        saveState();
+                        render();
+                    }
+                );
+            }
+        });
+
+
+        // --- CONFIRMATION MODAL ---
+        const confirmModal = document.getElementById('confirm-modal');
+        let confirmCallback = null;
+        
+        function showConfirmModal(title, body, onConfirm) {
+            document.getElementById('confirm-modal-title').textContent = title;
+            document.getElementById('confirm-modal-body').textContent = body;
+            confirmCallback = onConfirm;
+            confirmModal.classList.remove('hidden');
+            confirmModal.classList.add('flex');
+        }
+
+        function closeConfirmModal() {
+            confirmModal.classList.add('hidden');
+            confirmModal.classList.remove('flex');
+            confirmCallback = null;
+        }
+
+        document.getElementById('confirm-delete-btn').addEventListener('click', () => {
+            if (confirmCallback) {
+                confirmCallback();
+            }
+            closeConfirmModal();
+        });
+        document.getElementById('confirm-cancel-btn').addEventListener('click', closeConfirmModal);
+
+        // --- DATA MANAGEMENT (IMPORT/EXPORT) ---
+
+        /**
+         * Exports the current application state to a JSON file.
+         */
+        function exportData() {
+            try {
+                const dataStr = JSON.stringify(state, null, 2);
+                const dataBlob = new Blob([dataStr], {type: "application/json"});
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                const date = new Date().toISOString().slice(0, 10);
+                link.download = `hourly-rate-backup-${date}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error("Error exporting data:", error);
+                alert("An error occurred while exporting data.");
+            }
+        }
+
+        /**
+         * Handles the file import process.
+         * @param {Event} event - The file input change event.
+         */
+        function handleImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedState = JSON.parse(e.target.result);
+                    // Basic validation to ensure the file has the core state properties.
+                    if (!importedState || typeof importedState.settings !== 'object' || !Array.isArray(importedState.roles) || !Array.isArray(importedState.people)) {
+                        throw new Error("Invalid or corrupted data file. Required properties are missing.");
+                    }
+
+                    if (confirm("This will overwrite all current data. Are you sure you want to import this file?")) {
+                        // Merge to ensure new settings are not lost on import of old data
+                        state.settings = { ...state.settings, ...importedState.settings };
+                        state.roles = importedState.roles || [];
+                        state.people = importedState.people || [];
+                        state.fixedCosts = importedState.fixedCosts || [];
+                        state.monthlyRecovery = importedState.monthlyRecovery || Array(12).fill(null);
+                        undoStack = []; // Clear history on import
+                        redoStack = []; // Clear history on import
+                        
+                        saveState();
+                        render();
+                        alert("Data imported successfully!");
+                    }
+                } catch (error) {
+                    console.error("Error importing data:", error);
+                    alert(`Failed to import data: ${error.message}`);
+                } finally {
+                    // Reset the file input so the same file can be re-selected if the first attempt fails.
+                    event.target.value = '';
+                }
+            };
+            reader.readAsText(file);
+        }
+
+
+        // --- OTHER EVENT LISTENERS ---
+
+        // Settings accordion
+        const settingsAccordionBtn = document.getElementById('settings-accordion-button');
+        const settingsContent = document.getElementById('settings-content');
+        if (settingsAccordionBtn && settingsContent) {
+            settingsAccordionBtn.addEventListener('click', () => {
+                settingsAccordionBtn.classList.toggle('collapsed');
+                settingsContent.classList.toggle('hidden');
+            });
+        }
+
+        // History accordion
+        const historyAccordionBtn = document.getElementById('history-accordion-button');
+        const historyContent = document.getElementById('history-content');
+        if (historyAccordionBtn && historyContent) {
+            historyAccordionBtn.addEventListener('click', () => {
+                historyAccordionBtn.classList.toggle('collapsed');
+                historyContent.classList.toggle('hidden');
+            });
+        }
+
+        // Monthly Recovery accordion
+        const monthlyRecoveryAccordionBtn = document.getElementById('monthly-recovery-accordion-button');
+        const monthlyRecoveryContent = document.getElementById('monthly-recovery-content');
+        if (monthlyRecoveryAccordionBtn && monthlyRecoveryContent) {
+            monthlyRecoveryAccordionBtn.addEventListener('click', () => {
+                monthlyRecoveryAccordionBtn.classList.toggle('collapsed');
+                monthlyRecoveryContent.classList.toggle('hidden');
+            });
+        }
+
+        // Section accordions
+        function setupAccordion(headerId, contentId) {
+            const header = document.getElementById(headerId);
+            const content = document.getElementById(contentId);
+
+            if (header && content) {
+                header.addEventListener('click', () => {
+                    header.classList.toggle('collapsed');
+                    content.classList.toggle('hidden');
+                });
+            }
+        }
+
+        setupAccordion('fixed-costs-header', 'fixed-costs-content');
+        setupAccordion('roles-header', 'roles-content');
+        setupAccordion('people-header', 'people-content');
+
+        // --- Drag and Drop for Personnel ---
+        let draggedPersonId = null;
+
+        function isDescendant(personId, supervisorId) {
+            if (!supervisorId) return false;
+            let current = state.people.find(p => p.id === supervisorId);
+            while(current) {
+                if (current.supervisorId === personId) {
+                    return true;
+                }
+                current = state.people.find(p => p.id === current.supervisorId);
+            }
+            return false;
+        }
+
+        document.getElementById('people-container').addEventListener('dragstart', e => {
+            const target = e.target.closest('.person-card');
+            if (target) {
+                draggedPersonId = target.dataset.personId;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', draggedPersonId);
+                // Use a timeout to allow the browser to create the drag image before we change the style
+                setTimeout(() => {
+                    target.classList.add('opacity-50');
+                }, 0);
+            }
+        });
+
+        document.getElementById('people-container').addEventListener('dragend', e => {
+            const target = e.target.closest('.person-card');
+            if (target) {
+                target.classList.remove('opacity-50');
+            }
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            draggedPersonId = null;
+        });
+
+        document.getElementById('people-container').addEventListener('dragover', e => {
+            e.preventDefault(); 
+            const dropTarget = e.target.closest('.drop-zone, .person-card');
+            if (dropTarget) {
+                const potentialSupervisorId = dropTarget.dataset.supervisorId || dropTarget.dataset.personId;
+                if (potentialSupervisorId !== draggedPersonId && !isDescendant(draggedPersonId, potentialSupervisorId)) {
+                     e.dataTransfer.dropEffect = 'move';
+                     document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                     dropTarget.classList.add('drag-over');
+                } else {
+                    e.dataTransfer.dropEffect = 'none';
+                }
+            }
+        });
+
+        document.getElementById('people-container').addEventListener('dragleave', e => {
+            const target = e.target.closest('.drop-zone, .person-card');
+            if (target) {
+                target.classList.remove('drag-over');
+            }
+        });
+
+        document.getElementById('people-container').addEventListener('drop', e => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const dropTarget = e.target.closest('.drop-zone, .person-card');
+             if (dropTarget) {
+                dropTarget.classList.remove('drag-over');
+                let newSupervisorId = dropTarget.dataset.supervisorId || dropTarget.dataset.personId;
+                
+                if (newSupervisorId === 'null') newSupervisorId = null;
+
+                const draggedPerson = state.people.find(p => p.id === draggedPersonId);
+
+                if (draggedPerson && draggedPerson.supervisorId !== newSupervisorId) {
+                    pushToUndoStack(`Moved ${draggedPerson.name}`);
+                    draggedPerson.supervisorId = newSupervisorId;
+                    saveState();
+                    render();
+                }
+            }
+        });
+
+        // Handle collapse/expand clicks
+        document.getElementById('people-container').addEventListener('click', e => {
+            const button = e.target.closest('.toggle-collapse-btn');
+            if (button) {
+                e.stopPropagation(); // Prevent card edit/delete popups
+                const personId = button.dataset.personId;
+                const person = state.people.find(p => p.id === personId);
+                if (person) {
+                    pushToUndoStack(`${person.isCollapsed ? 'Expanded' : 'Collapsed'} ${person.name}'s team`);
+                    person.isCollapsed = !person.isCollapsed;
+                    saveState();
+                    render();
+                }
+            }
+        });
+
+        // Handle changes in monthly recovery inputs
+        document.getElementById('monthly-recovery-container').addEventListener('change', (e) => {
+            if (e.target.classList.contains('monthly-recovery-input')) {
+                const index = parseInt(e.target.dataset.index, 10);
+                const value = e.target.value;
+                const monthNames = ['July', 'August', 'September', 'October', 'November', 'December', 'January', 'February', 'March', 'April', 'May', 'June'];
+
+                // Use null for empty strings to indicate no "actual" has been entered.
+                const storedValue = value === '' ? null : parseFloat(value);
+                
+                if (!isNaN(index) && state.monthlyRecovery[index] !== storedValue) {
+                     pushToUndoStack(`Updated ${monthNames[index]} recovery to ${value === '' ? 'Projected' : formatCurrency(storedValue)}`);
+                    state.monthlyRecovery[index] = storedValue;
+                    saveState();
+                    calculateAndRenderSummary();
+                    updateUndoRedoButtons();
+                    renderChangeLog();
+                }
+            }
+        });
+
+        // Settings inputs update state and re-render
+        document.getElementById('base-billable-hours').addEventListener('change', (e) => {
+            const newValue = parseFloat(e.target.value) || 0;
+            pushToUndoStack(`Set Base Billable Hours to ${formatNumber(newValue)}`);
+            state.settings.baseBillableHours = newValue;
+            saveState();
+            render();
+        });
+
+        document.getElementById('default-benefits-percentage').addEventListener('change', (e) => {
+            const newValue = parseFloat(e.target.value) || 0;
+            pushToUndoStack(`Set Default Benefits % to ${newValue}%`);
+            state.settings.defaultBenefitsPercentage = newValue;
+            saveState();
+            render();
+        });
+        
+        document.getElementById('official-fy-rate').addEventListener('change', (e) => {
+            const newValue = parseFloat(e.target.value) || 0;
+            pushToUndoStack(`Set Official FY Rate to ${formatCurrency(newValue)}`);
+            state.settings.officialFYRate = newValue;
+            saveState();
+            render();
+        });
+
+        document.getElementById('toggle-salary-btn').addEventListener('click', () => {
+            const newVisibility = !state.settings.showSalaries;
+            pushToUndoStack(`Set Salary Visibility to ${newVisibility ? 'Shown' : 'Hidden'}`);
+            state.settings.showSalaries = newVisibility;
+            saveState();
+            render();
+        });
+
+        document.getElementById('toggle-workbook-btn').addEventListener('click', () => {
+            const newMode = !state.settings.workbookMode;
+            pushToUndoStack(`Switched to ${newMode ? 'Workbook' : 'Card'} View`);
+            state.settings.workbookMode = newMode;
+            saveState();
+            render();
+        });
+
+        // Import/Export buttons
+        document.getElementById('export-btn').addEventListener('click', exportData);
+        document.getElementById('import-btn').addEventListener('click', () => {
+            document.getElementById('import-file-input').click();
+        });
+        document.getElementById('import-file-input').addEventListener('change', handleImport);
+        document.getElementById('undo-btn').addEventListener('click', undo);
+        document.getElementById('redo-btn').addEventListener('click', redo);
+
+        // --- KEYBOARD SHORTCUTS ---
+        document.addEventListener('keydown', (e) => {
+            // Don't interfere with text editing.
+            const activeElement = document.activeElement;
+            const isEditing = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA' || activeElement.isContentEditable);
+            if (isEditing) {
+                return;
+            }
+
+            const isUndo = (e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey;
+            const isRedo = (e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey));
+
+            if (isUndo) {
+                e.preventDefault();
+                if (!document.getElementById('undo-btn').disabled) undo();
+            }
+
+            if (isRedo) {
+                e.preventDefault();
+                if (!document.getElementById('redo-btn').disabled) redo();
+            }
+        });
+
+        // --- INITIALIZATION ---
+        loadState();
+        render();
+    });
+    </script>
+</body>
+</html>
